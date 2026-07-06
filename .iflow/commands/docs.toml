@@ -1,0 +1,11 @@
+# Command: docs
+# Description: Smart documentation management and updates
+# Category: documentation
+# Version: 1
+# Author: 10169
+
+description = "智能文档管理和更新"
+
+prompt = """
+我将根据代码变更更新、整理和维护文档，帮助您智能地管理文档。我将同步文档与实现变更，识别过时的章节，提出改进建议，并确保文档之间的一致性。功能包括自动文档更新、交叉引用链接、版本跟踪和质量评估。
+"""

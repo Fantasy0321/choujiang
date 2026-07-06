@@ -1,0 +1,11 @@
+# Command: commit
+# Description: Analyze your changes and create a meaningful commit message
+# Category: utility
+# Version: 1
+# Author: 10169
+
+description = "分析您的更改并创建有意义的提交消息"
+
+prompt = """
+你会分析我的更改并创建一条有意义的提交消息并使用简单的git命令进行提交更改，以确定修改了哪些文件、更改的性质（功能、修复、重构等）以及受影响的范围/组件。基于分析结果、以及遵循项目的IFLOW上下文中的提交规范，你会创建一条常规的中文提交消息，其中包含类型（新增|修复|文档|优化|其他）、主题（用现在时清晰描述），如果IFLOW上下文中不存在提交规范则按照如下规范(git commit -m "新增 XX功能模块"、git commit -m "修复 XX错误"、git commit -m "优化 XX性能"、git commit -m "架构 XX结构")进行提交。
+"""

@@ -1,0 +1,76 @@
+{
+  "language": "zh-CN",
+  "mcpServers": {
+    "bing-cn-mcp": {
+      "description": "MCP 服务器，提供中文必应搜索结果抓取和网页内容抓取功能，支持中文搜索",
+      "command": "npx",
+      "args": ["-y", "@iflow-mcp/bing-cn-mcp"],
+      "env": {
+        "USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      }
+    },
+    "chrome-devtools": {
+      "description": "Chrome浏览器自动化工具，支持页面操作、性能分析、网络监控等功能",
+      "command": "npx",
+      "args": ["-y", "@iflow-mcp/chrome-devtools-mcp"]
+    },
+    "context7": {
+      "description": "为开发者提供最新技术文档和代码示例的智能检索服务，支持库搜索和文档获取功能",
+      "command": "npx",
+      "args": ["-y", "@iflow-mcp/context7-mcp@1.0.0"]
+    },
+    "fetch": {
+      "description": "Fetch服务提供了获取各种格式的Web内容的功能，包括HTML、JSON、纯文本、Markdown。",
+      "command": "npx",
+      "args": ["-y", "@iflow-mcp/fetch@1.0.2"]
+    },
+    "math-tools": {
+      "description": "提供34个数学运算工具，包含算术运算、统计计算、数据科学和表达式求值功能，支持高精度计算。",
+      "command": "npx",
+      "args": ["-y", "@iflow-mcp/math-tools"]
+    },
+    "desktop-commander": {
+      "description": "强大的桌面文件系统和进程管理工具，提供文件操作、搜索、进程管理等全面功能",
+      "command": "npx",
+      "args": ["-y", "@iflow-mcp/desktop-commander"]
+    },
+    "desktop-commander-puls": {
+      "command": "npx",
+      "args": ["-y", "@wonderwhy-er/desktop-commander@latest"]
+    },
+    "fast-filesystem": {
+      "command": "npx",
+      "args": ["-y", "fast-filesystem-mcp"]
+    },
+    "filesystem": {
+      "description": "提供完整的文件系统操作功能，包括文件读写、目录管理、文件搜索等，支持安全的路径验证和权限控制",
+      "command": "npx",
+      "args": ["-y", "@iflow-mcp/server-filesystem@0.6.2", "E:\\"]
+    },
+    "Framelink Figma MCP": {
+      "description": "为AI编程工具提供Figma设计文件访问能力，支持获取设计数据和下载图像资源，帮助实现设计到代码的一键转换。",
+      "command": "npx",
+      "args": ["-y", "@iflow-mcp/figma-developer-mcp@0.5.0", "--stdio"],
+      "env": {
+        "FIGMA_API_KEY": ""
+      }
+    },
+    "gitlab": {
+      "description": "提供GitLab项目管理、文件操作、Issue管理、合并请求等功能的MCP服务器工具集",
+      "command": "npx",
+      "args": ["-y", "@iflow-mcp/server-gitlab@latest"],
+      "env": {
+        "GITLAB_PERSONAL_ACCESS_TOKEN": "",
+        "GITLAB_API_URL": "https://git.flyh5.cn/api/v4"
+      }
+    },
+    "API 文档": {
+      "description": "将Apifox项目的接口文档作为数据源提供给AI工具，支持根据API文档生成代码、搜索接口内容等功能",
+      "command": "npx",
+      "args": ["-y", "@iflow-mcp/apifox-mcp-server", "--project-id="],
+      "env": {
+        "APIFOX_ACCESS_TOKEN": ""
+      }
+    }
+  }
+}

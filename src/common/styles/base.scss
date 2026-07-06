@@ -1,0 +1,127 @@
+// 定义内外边距，历遍1-100
+@for $i from 0 through 100 {
+  // 只要双数和能被5除尽的数
+  @if $i % 2==0 or $i % 5==0 {
+    // 得出：u-margin-30或者u-m-30
+    .w-#{$i} {
+      width: calc($i * 1%) !important;
+    }
+    .p-x-#{$i} {
+      padding-left: $i + rpx !important;
+      padding-right: $i + rpx !important;
+    }
+
+    .p-y-#{$i} {
+      padding-top: $i + rpx !important;
+      padding-bottom: $i + rpx !important;
+    }
+
+    .m-x-#{$i} {
+      margin-left: $i + rpx !important;
+      margin-right: $i + rpx !important;
+    }
+
+    .m-y-#{$i} {
+      margin-top: $i + rpx !important;
+      margin-bottom: $i + rpx !important;
+    }
+
+    .m-#{$i} {
+      margin-left: $i + rpx !important;
+      margin-right: $i + rpx !important;
+      margin-top: $i + rpx !important;
+      margin-bottom: $i + rpx !important;
+    }
+
+    .p-#{$i} {
+      padding-left: $i + rpx !important;
+      padding-right: $i + rpx !important;
+      padding-top: $i + rpx !important;
+      padding-bottom: $i + rpx !important;
+    }
+
+    .m-l-#{$i} {
+      margin-left: $i + rpx !important;
+    }
+
+    .m-t-#{$i} {
+      margin-top: $i + rpx !important;
+    }
+
+    .m-r-#{$i} {
+      margin-right: $i + rpx !important;
+    }
+
+    .m-b-#{$i} {
+      margin-bottom: $i + rpx !important;
+    }
+
+    .p-l-#{$i} {
+      padding-left: $i + rpx !important;
+    }
+
+    .p-t-#{$i} {
+      padding-top: $i + rpx !important;
+    }
+
+    .p-r-#{$i} {
+      padding-right: $i + rpx !important;
+    }
+
+    .p-b-#{$i} {
+      padding-bottom: $i + rpx !important;
+    }
+
+    .l-p-#{$i} {
+      letter-spacing: $i + rpx !important;
+    }
+
+    .z-i-#{$i} {
+      z-index: $i;
+    }
+
+    .l-h-#{$i} {
+      line-height: $i + rpx !important;
+    }
+    .r-#{$i} {
+      right: $i + rpx !important;
+    }
+    .l-#{$i} {
+      left: $i + rpx !important;
+    }
+
+    .t-#{$i} {
+      top: $i + rpx !important;
+    }
+    .b-#{$i} {
+      bottom: $i + rpx !important;
+    }
+  }
+}
+
+// 定义字体(rpx)单位，大于或等于20的都为rpx单位字体
+@for $i from 9 through 60 {
+  .font-#{$i} {
+    font-size: $i + rpx !important;
+  }
+}
+
+// 圆角
+@for $i from 4 through 60 {
+  .rounded-#{$i} {
+    border-radius: $i + rpx;
+  }
+}
+
+// 多行文本溢出
+@for $i from 1 through 5 {
+  .over-line-#{$i} {
+    width: 100%;
+    height: calc($i * 1em + 0.5em);
+    display: -webkit-box;
+    text-overflow: ellipsis;
+    -webkit-line-clamp: $i;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+  }
+}

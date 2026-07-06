@@ -1,0 +1,9 @@
+unpackage
+/dist
+node_modules
+.manifest-updated
+/参考
+
+# IDE/Tooling sensitive configs
+.mcp.json
+nul

@@ -1,0 +1,11 @@
+# Command: cleanproject
+# Description: Clean up development artifacts while preserving your working code
+# Category: utility
+# Version: 1
+# Author: 10169
+
+description = "Clean up development artifacts while preserving your working code"
+
+prompt = """
+I'll help clean up development artifacts while preserving your working code. I'll identify cleanup targets using native tools: Glob tool to find temporary and debug files, Grep tool to detect debug statements in code, Read tool to verify file contents before removal. Critical directories are automatically protected: .claude directory (commands and configurations), .git directory (version control), node_modules, vendor (dependency directories), Essential configuration files. When I find multiple items to clean, I'll create a todo list to process them systematically.
+"""
