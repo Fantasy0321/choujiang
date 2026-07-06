@@ -1,7 +1,10 @@
 {
   "pages": [
     {
-      "path": "pages/index/index"
+      "path": "pages/index/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
     }
   ],
   "subPackages": [
@@ -22,8 +25,8 @@
   },
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "请修改为项目名称",
-    "navigationBarBackgroundColor": "#F8F8F8",
-    "backgroundColor": "#F8F8F8"
+    "navigationBarTitleText": "",
+    "navigationBarBackgroundColor": "#F8E6B8",
+    "backgroundColor": "#F8E6B8"
   }
 }

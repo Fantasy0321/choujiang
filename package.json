@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "dev:h5": "npx uni -p h5",
     "devtools:dev": "node scripts/devtools.dev.mjs",
     "devtools:prod": "npm run replace:static && node scripts/devtools.prod.mjs",
     "upload:weapp": "node scripts/upload-weapp.js",
