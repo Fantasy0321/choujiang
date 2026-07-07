@@ -9,11 +9,31 @@
 
     <view v-else-if="screen === 'home'" class="stage">
       <skin-image v-for="layer in layers.home" :key="layer.name" v-bind="layer" />
+      <animated-frame-image
+        folder="tree-effect"
+        prefix="tree_effect"
+        :frame-count="48"
+        :x="104"
+        :y="730"
+        :w="575"
+        :h="539"
+      />
+      <animated-frame-image
+        folder="start-button"
+        prefix="start_button"
+        :frame-count="68"
+        :x="180"
+        :y="1202"
+        :w="390"
+        :h="112"
+      />
       <view class="tap-area start-area" @tap="openRule" />
     </view>
 
     <view v-else-if="screen === 'time'" class="stage">
       <skin-image v-for="layer in layers.time" :key="layer.name" v-bind="layer" />
+      <clock-disk-image :rotate="clockDiskRotation" />
+      <skin-image folder="time1" name="time1_7" :x="218" :y="1038" :w="312" :h="524" />
       <view class="tap-area time-rule-area" @tap="openRule" />
       <view class="tap-area time-checkin-area" @tap="openDaka" />
       <view class="tap-area punch-area" @tap="openDaka" />
@@ -69,11 +89,25 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, onMounted, reactive, ref } from 'vue'
+import { computed, defineComponent, h, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { checkin, claimPrize, drawPrize, getActivityState } from '@/api/activity'
+import { generateActivityToken } from '@/api/auth'
 
-const px = value => `${Number(value) / 2}px`
+const DESIGN_WIDTH = 750
+const DESIGN_HEIGHT = 1624
+
+const percentX = value => `calc(${Number(value)} / ${DESIGN_WIDTH} * 100%)`
+const percentY = value => `calc(${Number(value)} / ${DESIGN_HEIGHT} * 100%)`
+
+function designStyle({ x, y, w, h }) {
+  return {
+    left: percentX(x),
+    top: percentY(y),
+    width: percentX(w),
+    height: percentY(h),
+  }
+}
 
 const SkinImage = defineComponent({
   props: {
@@ -89,13 +123,92 @@ const SkinImage = defineComponent({
       h('img', {
         class: 'skin-img',
         src: `/static/activity/${props.folder}/${props.name}.png`,
-        style: {
-          left: px(props.x),
-          top: px(props.y),
-          width: px(props.w),
-          height: px(props.h),
-        },
+        style: designStyle(props),
       })
+  },
+})
+
+const AnimatedFrameImage = defineComponent({
+  props: {
+    folder: { type: String, required: true },
+    prefix: { type: String, required: true },
+    frameCount: { type: Number, required: true },
+    fps: { type: Number, default: 24 },
+    x: { type: [String, Number], default: 0 },
+    y: { type: [String, Number], default: 0 },
+    w: { type: [String, Number], required: true },
+    h: { type: [String, Number], required: true },
+  },
+  setup(props) {
+    const currentFrame = ref(0)
+    let timer = null
+
+    function getFrameSrc(index) {
+      const frameName = String(index).padStart(5, '0')
+      return `/static/activity/${props.folder}/${props.prefix}_${frameName}.png`
+    }
+
+    onMounted(() => {
+      if (typeof Image !== 'undefined') {
+        for (let index = 0; index < props.frameCount; index += 1) {
+          const frameImage = new Image()
+          frameImage.src = getFrameSrc(index)
+        }
+      }
+
+      timer = setInterval(() => {
+        currentFrame.value = (currentFrame.value + 1) % props.frameCount
+      }, 1000 / props.fps)
+    })
+
+    onUnmounted(() => {
+      if (timer) {
+        clearInterval(timer)
+      }
+    })
+
+    return () => {
+      return h('img', {
+        class: 'skin-img',
+        src: getFrameSrc(currentFrame.value),
+        style: designStyle(props),
+      })
+    }
+  },
+})
+
+const ClockDiskImage = defineComponent({
+  props: {
+    rotate: { type: Number, default: 0 },
+  },
+  setup(props) {
+    // block.png: 817x828, 只露出上半部分（略过一半）
+    // 显示宽度 750px，高度 auto ≈ 760px，clip 裁剪底部
+    return () =>
+      h('div', {
+        class: 'clock-disk-clip',
+        style: {
+          left: percentX(-10),
+          top: percentY(1140),
+          width: percentX(770),
+          height: percentY(516),
+          overflow: 'hidden',
+        },
+      },
+        [
+          h('img', {
+            class: 'skin-img',
+            src: '/static/activity/time1/block.png',
+            style: {
+              left: 0,
+              top: percentY(20),
+              width: '100%',
+              transform: `rotate(${props.rotate}deg)`,
+              transformOrigin: '50% 50%',
+            },
+          }),
+        ],
+      )
   },
 })
 
@@ -111,12 +224,10 @@ const layers = {
   ],
   home: [
     img('index', 'index_7', 0, 0, 750, 1624),
-    img('index', 'index_6', 187, 830, 407, 398),
     img('index', 'index_5', 139, 1339, 479, 27),
     img('index', 'index_4', 0, 690, 750, 77),
     img('index', 'index_3', 39, 437, 672, 255),
     img('index', 'index_2', 240, 295, 270, 66),
-    img('index', 'index_1', 180, 1213, 390, 91),
   ],
   rule: [
     img('rule', 'rule_4', 0, 0, 750, 1624),
@@ -127,8 +238,6 @@ const layers = {
   time: [
     img('time1', 'time1_10', 0, 0, 750, 1624),
     img('time1', 'time1_9', 72, 369, 605, 1097),
-    img('time1', 'time1_8', 0, 1108, 750, 516),
-    img('time1', 'time1_7', 218, 1038, 312, 524),
     img('time1', 'time1_6', 316, 1005, 117, 28),
     img('time1', 'time1_5', 100, 379, 552, 329),
     img('time1', 'time1_4', 216, 795, 316, 87),
@@ -215,6 +324,7 @@ const showRule = ref(false)
 const activePrizeIndex = ref(-1)
 const drawing = ref(false)
 const urlUserId = ref('')
+const clockDiskRotation = ref(0)
 const state = reactive({})
 const claimForm = reactive({
   receiverName: '',
@@ -239,6 +349,15 @@ const userPayload = computed(() => ({
   nickname: uni.getStorageSync('activity_nickname') || '用户昵称',
   avatarUrl: uni.getStorageSync('activity_avatar') || '',
 }))
+
+let clockTimer = null
+
+function updateClockDiskRotation() {
+  const now = new Date()
+  // 每2小时转动30°，对应12地支，24小时一圈
+  const branchIndex = Math.floor(((now.getHours() + 1) % 24) / 2)
+  clockDiskRotation.value = -branchIndex * 30
+}
 
 const dakaLayers = computed(() => {
   const checked = Math.min(Number(state.checkinDays || 0), 7)
@@ -285,14 +404,52 @@ onMounted(() => {
   if (!urlUserId.value) {
     urlUserId.value = resolveUrlUserId()
   }
+  updateClockDiskRotation()
+  clockTimer = setInterval(updateClockDiskRotation, 60 * 1000)
   boot()
 })
 
-function boot() {
+onUnmounted(() => {
+  if (clockTimer) {
+    clearInterval(clockTimer)
+  }
+})
+
+async function boot() {
   setTimeout(() => {
     screen.value = 'home'
-    refreshState()
   }, 900)
+
+  try {
+    await ensureActivityToken()
+    await refreshState()
+  } catch (error) {
+    uni.showToast({ title: error?.data?.msg || '授权失败', icon: 'none' })
+  }
+}
+
+async function ensureActivityToken() {
+  const cachedUserId = uni.getStorageSync('activity_user_id')
+  const cachedToken = uni.getStorageSync('activity_token')
+  if (!urlUserId.value && cachedUserId) {
+    urlUserId.value = String(cachedUserId)
+  }
+  if (cachedToken && cachedUserId && String(cachedUserId) === urlUserId.value) {
+    return cachedToken
+  }
+
+  const res = await generateActivityToken(urlUserId.value)
+  const token = res.data?.token || res.data?.data?.token || res.data?.data
+  const userId = res.data?.userId || res.data?.data?.userId || urlUserId.value
+  if (!token) {
+    throw new Error('empty token')
+  }
+  if (userId) {
+    urlUserId.value = String(userId)
+    uni.setStorageSync('activity_user_id', urlUserId.value)
+  }
+  uni.setStorageSync('activity_token', token)
+  return token
 }
 
 function resolveUrlUserId(options = {}) {
@@ -458,12 +615,7 @@ async function submitClaim() {
 }
 
 function cellStyle(cell) {
-  return {
-    left: px(cell.x),
-    top: px(cell.y),
-    width: px(cell.w),
-    height: px(cell.h),
-  }
+  return designStyle(cell)
 }
 </script>
 
@@ -473,11 +625,15 @@ function cellStyle(cell) {
   background: #f8e6b8;
 }
 
+.clock-disk-clip {
+  position: absolute;
+  pointer-events: none;
+}
+
 .stage {
   position: relative;
-  width: 375px;
-  height: 812px;
-  margin: 0 auto;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
 }
 
@@ -493,89 +649,90 @@ function cellStyle(cell) {
 }
 
 .start-area {
-  left: 90px;
-  top: 606.5px;
-  width: 195px;
-  height: 45.5px;
+  left: calc(90 / 375 * 100%);
+  top: calc(601 / 812 * 100%);
+  width: calc(195 / 375 * 100%);
+  height: calc(56 / 812 * 100%);
 }
 
 .time-rule-area {
-  left: 308px;
-  top: 109px;
-  width: 67px;
-  height: 26.5px;
+  left: calc(308 / 375 * 100%);
+  top: calc(109 / 812 * 100%);
+  width: calc(67 / 375 * 100%);
+  height: calc(26.5 / 812 * 100%);
 }
 
 .time-checkin-area {
-  left: 308px;
-  top: 144px;
-  width: 67px;
-  height: 26.5px;
+  left: calc(308 / 375 * 100%);
+  top: calc(144 / 812 * 100%);
+  width: calc(67 / 375 * 100%);
+  height: calc(26.5 / 812 * 100%);
 }
 
 .punch-area {
-  left: 108px;
-  top: 397.5px;
-  width: 158px;
-  height: 43.5px;
+  left: calc(108 / 375 * 100%);
+  top: calc(397.5 / 812 * 100%);
+  width: calc(158 / 375 * 100%);
+  height: calc(43.5 / 812 * 100%);
 }
 
 .close-daka-area,
 .close-message-area {
-  left: 295.5px;
-  top: 214.5px;
-  width: 45px;
-  height: 45px;
+  left: calc(295.5 / 375 * 100%);
+  top: calc(214.5 / 812 * 100%);
+  width: calc(45 / 375 * 100%);
+  height: calc(45 / 812 * 100%);
 }
 
 .close-daka-area {
-  left: 310px;
-  top: 247px;
+  left: calc(310 / 375 * 100%);
+  top: calc(247 / 812 * 100%);
 }
 
 .sign-area,
 .submit-area {
-  left: 121px;
-  top: 555.5px;
-  width: 134px;
-  height: 35.5px;
+  left: calc(121 / 375 * 100%);
+  top: calc(555.5 / 812 * 100%);
+  width: calc(134 / 375 * 100%);
+  height: calc(35.5 / 812 * 100%);
 }
 
 .draw-area {
-  left: 144px;
-  top: 405.5px;
-  width: 102px;
-  height: 102px;
+  left: calc(144 / 375 * 100%);
+  top: calc(405.5 / 812 * 100%);
+  width: calc(102 / 375 * 100%);
+  height: calc(102 / 812 * 100%);
 }
 
 .fill-area {
-  left: 127px;
-  top: 558.5px;
-  width: 121.5px;
-  height: 32.5px;
+  left: calc(127 / 375 * 100%);
+  top: calc(558.5 / 812 * 100%);
+  width: calc(121.5 / 375 * 100%);
+  height: calc(32.5 / 812 * 100%);
 }
 
 .poster-draw-area {
-  left: 114px;
-  top: 700.5px;
-  width: 149px;
-  height: 45px;
+  left: calc(114 / 375 * 100%);
+  top: calc(700.5 / 812 * 100%);
+  width: calc(149 / 375 * 100%);
+  height: calc(45 / 812 * 100%);
 }
 
 .rule-confirm-area {
-  left: 129px;
-  top: 595.5px;
-  width: 121.5px;
-  height: 32px;
+  left: calc(129 / 375 * 100%);
+  top: calc(595.5 / 812 * 100%);
+  width: calc(121.5 / 375 * 100%);
+  height: calc(32 / 812 * 100%);
 }
 
 .progress-clip {
   position: absolute;
-  left: 72.5px;
-  top: 455.5px;
+  left: calc(72.5 / 375 * 100%);
+  top: calc(455.5 / 812 * 100%);
   z-index: 2;
-  width: 239.5px;
-  height: 11.5px;
+  --progress-full-width: calc(239.5 / 375 * 100%);
+  width: var(--progress-full-width);
+  height: calc(11.5 / 812 * 100%);
   overflow: hidden;
   border-radius: 99px;
   animation: loading-bar .9s linear forwards;
@@ -590,7 +747,7 @@ function cellStyle(cell) {
     width: 0;
   }
   to {
-    width: 239.5px;
+    width: var(--progress-full-width);
   }
 }
 
@@ -617,10 +774,10 @@ function cellStyle(cell) {
 
 .result-prize-name {
   position: absolute;
-  left: 60px;
-  top: 519px;
+  left: calc(60 / 375 * 100%);
+  top: calc(519 / 812 * 100%);
   z-index: 6;
-  width: 255px;
+  width: calc(255 / 375 * 100%);
   color: #8b6232;
   font-size: 14px;
   line-height: 19px;
@@ -629,10 +786,10 @@ function cellStyle(cell) {
 
 .form-input {
   position: absolute;
-  left: 161px;
+  left: calc(161 / 375 * 100%);
   z-index: 12;
-  width: 125px;
-  height: 23.5px;
+  width: calc(125 / 375 * 100%);
+  height: calc(23.5 / 812 * 100%);
   padding: 0 7px;
   box-sizing: border-box;
   border: 0;
@@ -644,15 +801,15 @@ function cellStyle(cell) {
 }
 
 .name-input {
-  top: 341px;
+  top: calc(341 / 812 * 100%);
 }
 
 .phone-input {
-  top: 378.5px;
+  top: calc(378.5 / 812 * 100%);
 }
 
 .address-input {
-  top: 416px;
+  top: calc(416 / 812 * 100%);
 }
 
 .poster-name,
@@ -665,16 +822,16 @@ function cellStyle(cell) {
 }
 
 .poster-name {
-  left: 138px;
-  top: 580px;
-  width: 120px;
+  left: calc(138 / 375 * 100%);
+  top: calc(580 / 812 * 100%);
+  width: calc(120 / 375 * 100%);
 }
 
 .poster-prize {
-  left: 274px;
-  top: 585px;
-  width: 68px;
-  min-height: 48px;
+  left: calc(274 / 375 * 100%);
+  top: calc(585 / 812 * 100%);
+  width: calc(68 / 375 * 100%);
+  min-height: calc(48 / 812 * 100%);
   text-align: center;
 }
 </style>
