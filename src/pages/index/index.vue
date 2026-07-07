@@ -32,8 +32,12 @@
 
     <view v-else-if="screen === 'time'" class="stage">
       <skin-image v-for="layer in layers.time" :key="layer.name" v-bind="layer" />
-      <clock-disk-image :rotate="clockDiskRotation" />
-      <skin-image folder="time1" name="time1_7" :x="218" :y="1038" :w="312" :h="524" />
+      <clock-disk-image :rotate="clockDiskRotation" @rotate-delta="rotateClockDisk" />
+      <skin-image
+        :key="timePointerLayer.folder"
+        class="time-pointer-img"
+        v-bind="timePointerLayer"
+      />
       <view class="tap-area time-rule-area" @tap="openRule" />
       <view class="tap-area time-checkin-area" @tap="openDaka" />
       <view class="tap-area punch-area" @tap="openDaka" />
@@ -73,7 +77,9 @@
     </view>
 
     <view v-else-if="screen === 'poster'" class="stage">
-      <skin-image v-for="layer in layers.poster" :key="layer.name" v-bind="layer" />
+      <skin-image v-for="layer in posterLayers" :key="layer.name" v-bind="layer" />
+      <view class="poster-hour">{{ posterInfo.hourName }}</view>
+      <view class="poster-hour-desc">{{ posterInfo.hourRange }}</view>
       <view class="poster-name">{{ state.nickname || '用户昵称' }}</view>
       <view class="poster-prize">{{ state.prizeName || '扫码参与活动' }}</view>
       <view class="tap-area poster-draw-area" @tap="goLottery" />
@@ -181,12 +187,65 @@ const ClockDiskImage = defineComponent({
   props: {
     rotate: { type: Number, default: 0 },
   },
-  setup(props) {
+  emits: ['rotateDelta'],
+  setup(props, { emit }) {
+    let dragging = false
+    let lastAngle = 0
+
+    function angleFromEvent(event) {
+      const point = event.touches?.[0] || event
+      const rect = event.currentTarget.getBoundingClientRect()
+      const centerX = rect.left + rect.width / 2
+      const centerY = rect.top + (rect.width * 828 / 817) / 2
+      return Math.atan2(point.clientY - centerY, point.clientX - centerX) * 180 / Math.PI
+    }
+
+    function normalizeDelta(delta) {
+      if (delta > 180) return delta - 360
+      if (delta < -180) return delta + 360
+      return delta
+    }
+
+    function startDrag(event) {
+      dragging = true
+      lastAngle = angleFromEvent(event)
+      event.preventDefault?.()
+    }
+
+    function moveDrag(event) {
+      if (!dragging) return
+      const nextAngle = angleFromEvent(event)
+      emit('rotateDelta', normalizeDelta(nextAngle - lastAngle))
+      lastAngle = nextAngle
+      event.preventDefault?.()
+    }
+
+    function endDrag() {
+      dragging = false
+    }
+
+    function startMouseDrag(event) {
+      startDrag(event)
+      const move = moveEvent => moveDrag(moveEvent)
+      const end = () => {
+        endDrag()
+        window.removeEventListener('mousemove', move)
+        window.removeEventListener('mouseup', end)
+      }
+      window.addEventListener('mousemove', move)
+      window.addEventListener('mouseup', end)
+    }
+
     // block.png: 817x828, 只露出上半部分（略过一半）
     // 显示宽度 750px，高度 auto ≈ 760px，clip 裁剪底部
     return () =>
       h('div', {
         class: 'clock-disk-clip',
+        onTouchstart: startDrag,
+        onTouchmove: moveDrag,
+        onTouchend: endDrag,
+        onTouchcancel: endDrag,
+        onMousedown: startMouseDrag,
         style: {
           left: percentX(-10),
           top: percentY(1140),
@@ -197,14 +256,14 @@ const ClockDiskImage = defineComponent({
       },
         [
           h('img', {
-            class: 'skin-img',
+            class: 'skin-img clock-disk-img',
             src: '/static/activity/time1/block.png',
             style: {
               left: 0,
               top: 0,
               width: '100%',
               transform: `rotate(${props.rotate}deg)`,
-              transformOrigin: '50% 47%',
+              transformOrigin: '50% 50%',
             },
           }),
         ],
@@ -324,7 +383,9 @@ const showRule = ref(false)
 const activePrizeIndex = ref(-1)
 const drawing = ref(false)
 const urlUserId = ref('')
-const clockDiskRotation = ref(0)
+const clockBaseRotation = ref(0)
+const manualClockRotationOffset = ref(0)
+const posterHourKey = ref('')
 
 const state = reactive({})
 const claimForm = reactive({
@@ -350,6 +411,55 @@ const userPayload = computed(() => ({
   nickname: uni.getStorageSync('activity_nickname') || '用户昵称',
   avatarUrl: uni.getStorageSync('activity_avatar') || '',
 }))
+
+let clockTimer = null
+const LAST_CLOCK_HOUR_INDEX = 11
+
+const clockDiskRotation = computed(() => clockBaseRotation.value + manualClockRotationOffset.value)
+const clockHourIndex = computed(() => {
+  return clampClockHourIndex(Math.round(-clockDiskRotation.value / 30), currentClockHourIndex())
+})
+const timePointerLayer = computed(() => {
+  const folder = `time${clockHourIndex.value + 1}`
+  return img(folder, `${folder}_7`, 218, 1038, 312, 524)
+})
+
+function updateClockDiskRotation() {
+  clockBaseRotation.value = -currentClockHourIndex() * 30
+  clampClockOffset()
+}
+
+function rotateClockDisk(delta) {
+  manualClockRotationOffset.value += delta
+  clampClockOffset()
+}
+
+function positiveModulo(value, divisor) {
+  return ((value % divisor) + divisor) % divisor
+}
+
+function clampClockHourIndex(value, minIndex = 0) {
+  return Math.min(Math.max(value, minIndex), LAST_CLOCK_HOUR_INDEX)
+}
+
+function clampClockOffset() {
+  const minRotation = -currentClockHourIndex() * 30
+  const maxRotation = -LAST_CLOCK_HOUR_INDEX * 30
+  const nextRotation = clockBaseRotation.value + manualClockRotationOffset.value
+  if (nextRotation > minRotation) {
+    manualClockRotationOffset.value = minRotation - clockBaseRotation.value
+    return
+  }
+  if (nextRotation < maxRotation) {
+    manualClockRotationOffset.value = maxRotation - clockBaseRotation.value
+  }
+}
+
+function currentClockHourIndex() {
+  const hour = new Date().getHours()
+  const oddHour = hour % 2 === 1 ? hour : (hour + 23) % 24
+  return clampClockHourIndex(positiveModulo(((oddHour + 23) % 24) / 2, 12))
+}
 
 const dakaLayers = computed(() => {
   const checked = Math.min(Number(state.checkinDays || 0), 7)
@@ -388,6 +498,12 @@ const lotteryLayers = computed(() => {
   })
 })
 
+const posterLayers = computed(() => {
+  return layers.poster
+})
+
+const posterInfo = computed(() => getHourPosterInfo(posterHourKey.value || currentHourKey()))
+
 onLoad(options => {
   urlUserId.value = resolveUrlUserId(options)
 })
@@ -396,7 +512,15 @@ onMounted(() => {
   if (!urlUserId.value) {
     urlUserId.value = resolveUrlUserId()
   }
+  updateClockDiskRotation()
+  clockTimer = setInterval(updateClockDiskRotation, 10 * 1000)
   boot()
+})
+
+onUnmounted(() => {
+  if (clockTimer) {
+    clearInterval(clockTimer)
+  }
 })
 
 async function boot() {
@@ -472,6 +596,9 @@ async function refreshState() {
 
 function assignState(data = {}) {
   Object.assign(state, data)
+  if (!posterHourKey.value) {
+    posterHourKey.value = uni.getStorageSync(posterHourStorageKey()) || ''
+  }
 }
 
 function openRule() {
@@ -506,8 +633,11 @@ async function doCheckin() {
   }
 
   try {
+    const signedHourKey = currentHourKey()
     const res = await checkin(userPayload.value)
     assignState(res.data.data)
+    posterHourKey.value = signedHourKey
+    uni.setStorageSync(posterHourStorageKey(), signedHourKey)
     uni.showToast({ title: '签到成功', icon: 'none' })
     setTimeout(() => {
       screen.value = 'poster'
@@ -515,6 +645,39 @@ async function doCheckin() {
   } catch (error) {
     uni.showToast({ title: error?.data?.msg || '签到失败', icon: 'none' })
   }
+}
+
+function todayDateKey() {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}${month}${day}`
+}
+
+function posterHourStorageKey() {
+  return `activity_poster_hour_${urlUserId.value}_${todayDateKey()}`
+}
+
+function currentHourKey() {
+  return String(currentClockHourIndex())
+}
+
+function getHourPosterInfo(key) {
+  const hourList = [
+    { hourName: '子时', hourRange: '23:00-01:00' },
+    { hourName: '丑时', hourRange: '01:00-03:00' },
+    { hourName: '寅时', hourRange: '03:00-05:00' },
+    { hourName: '卯时', hourRange: '05:00-07:00' },
+    { hourName: '辰时', hourRange: '07:00-09:00' },
+    { hourName: '巳时', hourRange: '09:00-11:00' },
+    { hourName: '午时', hourRange: '11:00-13:00' },
+    { hourName: '未时', hourRange: '13:00-15:00' },
+    { hourName: '申时', hourRange: '15:00-17:00' },
+    { hourName: '酉时', hourRange: '17:00-19:00' },
+    { hourName: '戌时', hourRange: '19:00-21:00' },
+    { hourName: '亥时', hourRange: '21:00-23:00' },
+  ]
+  return hourList[Number(key) || 0] || hourList[0]
 }
 
 function goLottery() {
@@ -611,7 +774,19 @@ function cellStyle(cell) {
 
 .clock-disk-clip {
   position: absolute;
-  pointer-events: none;
+  overflow: hidden;
+  z-index: 4;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.clock-disk-img {
+  transition: transform .35s ease-out;
+}
+
+.time-pointer-img {
+  z-index: 5;
 }
 
 .stage {
@@ -803,6 +978,31 @@ function cellStyle(cell) {
   color: #8a6332;
   font-size: 12px;
   line-height: 16px;
+}
+
+.poster-hour {
+  position: absolute;
+  left: calc(114 / 375 * 100%);
+  top: calc(520 / 812 * 100%);
+  z-index: 6;
+  width: calc(148 / 375 * 100%);
+  color: #8a6332;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 28px;
+  text-align: center;
+}
+
+.poster-hour-desc {
+  position: absolute;
+  left: calc(114 / 375 * 100%);
+  top: calc(550 / 812 * 100%);
+  z-index: 6;
+  width: calc(148 / 375 * 100%);
+  color: #8a6332;
+  font-size: 11px;
+  line-height: 14px;
+  text-align: center;
 }
 
 .poster-name {
