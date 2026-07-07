@@ -16,6 +16,10 @@ http.setConfig(config => {
 http.interceptors.request.use(
   async config => {
     config.header = { ...config.header }
+    const token = uni.getStorageSync('activity_token')
+    if (token) {
+      config.header.Authorization = `Bearer ${token}`
+    }
     return config
   },
   config => {
