@@ -201,10 +201,10 @@ const ClockDiskImage = defineComponent({
             src: '/static/activity/time1/block.png',
             style: {
               left: 0,
-              top: percentY(20),
+              top: 0,
               width: '100%',
               transform: `rotate(${props.rotate}deg)`,
-              transformOrigin: '50% 50%',
+              transformOrigin: '50% 47%',
             },
           }),
         ],
@@ -325,6 +325,7 @@ const activePrizeIndex = ref(-1)
 const drawing = ref(false)
 const urlUserId = ref('')
 const clockDiskRotation = ref(0)
+
 const state = reactive({})
 const claimForm = reactive({
   receiverName: '',
@@ -349,15 +350,6 @@ const userPayload = computed(() => ({
   nickname: uni.getStorageSync('activity_nickname') || '用户昵称',
   avatarUrl: uni.getStorageSync('activity_avatar') || '',
 }))
-
-let clockTimer = null
-
-function updateClockDiskRotation() {
-  const now = new Date()
-  // 每2小时转动30°，对应12地支，24小时一圈
-  const branchIndex = Math.floor(((now.getHours() + 1) % 24) / 2)
-  clockDiskRotation.value = -branchIndex * 30
-}
 
 const dakaLayers = computed(() => {
   const checked = Math.min(Number(state.checkinDays || 0), 7)
@@ -404,15 +396,7 @@ onMounted(() => {
   if (!urlUserId.value) {
     urlUserId.value = resolveUrlUserId()
   }
-  updateClockDiskRotation()
-  clockTimer = setInterval(updateClockDiskRotation, 60 * 1000)
   boot()
-})
-
-onUnmounted(() => {
-  if (clockTimer) {
-    clearInterval(clockTimer)
-  }
 })
 
 async function boot() {
