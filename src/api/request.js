@@ -2,7 +2,7 @@ import Request from '@/lib/luch-request/index.js'
 import tool from '@/common/utils/tool.js'
 import { reportError } from 'uniapp-error-monitor'
 
-const baseUrl = import.meta.env.VITE_BASE_URL || 'http://localhost:8080/template'
+const baseUrl = import.meta.env.VITE_BASE_URL 
 const http = new Request()
 
 /* 设置全局配置 */
