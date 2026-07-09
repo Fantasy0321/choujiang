@@ -36,10 +36,11 @@
       <skin-image
         :key="timePointerLayer.folder"
         class="time-pointer-img"
+        auto-height
         v-bind="timePointerLayer"
       />
       <view class="tap-area time-rule-area" @tap="openRule" />
-      <view class="tap-area time-checkin-area" @tap="openDaka" />
+      <view class="tap-area time-checkin-area" @tap="openPrizeResult" />
       <view class="tap-area punch-area" @tap="openDaka" />
     </view>
 
@@ -62,9 +63,14 @@
     </view>
 
     <view v-else-if="screen === 'prizeResult'" class="stage">
-      <skin-image v-for="layer in layers.prizeResult" :key="layer.name" v-bind="layer" />
-      <view class="result-prize-name">{{ state.prizeName || '奖品名称' }}</view>
-      <view class="tap-area fill-area" @tap="openMessage" />
+      <skin-image
+        v-for="layer in prizeResultLayers"
+        :key="layer.name"
+        :class="layer.class"
+        v-bind="layer"
+      />
+      <view class="result-prize-name">{{ state.prizeName || '暂无奖品' }}</view>
+      <view v-if="showFillInfoButton" class="tap-area fill-area" @tap="openMessage" />
     </view>
 
     <view v-else-if="screen === 'message'" class="stage">
@@ -78,8 +84,6 @@
 
     <view v-else-if="screen === 'poster'" class="stage">
       <skin-image v-for="layer in posterLayers" :key="layer.name" v-bind="layer" />
-      <view class="poster-hour">{{ posterInfo.hourName }}</view>
-      <view class="poster-hour-desc">{{ posterInfo.hourRange }}</view>
       <view class="poster-name">{{ state.nickname || '用户昵称' }}</view>
       <view class="poster-prize">{{ state.prizeName || '扫码参与活动' }}</view>
       <view class="tap-area poster-draw-area" @tap="goLottery" />
@@ -123,14 +127,21 @@ const SkinImage = defineComponent({
     y: { type: [String, Number], default: 0 },
     w: { type: [String, Number], required: true },
     h: { type: [String, Number], required: true },
+    autoHeight: { type: Boolean, default: false },
   },
   setup(props) {
-    return () =>
-      h('img', {
+    return () => {
+      const style = designStyle(props)
+      if (props.autoHeight) {
+        style.height = 'auto'
+      }
+
+      return h('img', {
         class: 'skin-img',
         src: `/static/activity/${props.folder}/${props.name}.png`,
-        style: designStyle(props),
+        style,
       })
+    }
   },
 })
 
@@ -385,7 +396,6 @@ const drawing = ref(false)
 const urlUserId = ref('')
 const clockBaseRotation = ref(0)
 const manualClockRotationOffset = ref(0)
-const posterHourKey = ref('')
 
 const state = reactive({})
 const claimForm = reactive({
@@ -421,7 +431,7 @@ const clockHourIndex = computed(() => {
 })
 const timePointerLayer = computed(() => {
   const folder = `time${clockHourIndex.value + 1}`
-  return img(folder, `${folder}_7`, 218, 1038, 312, 524)
+  return img(folder, `${folder}_7`, 207, 1038, 336, 524)
 })
 
 function updateClockDiskRotation() {
@@ -498,11 +508,32 @@ const lotteryLayers = computed(() => {
   })
 })
 
-const posterLayers = computed(() => {
-  return layers.poster
+const hasPrize = computed(() => Boolean(state.prizeStatus || state.prizeName))
+
+const showFillInfoButton = computed(() => state.prizeStatus !== 'SUBMITTED')
+
+const prizeResultLayers = computed(() => {
+  return layers.prizeResult
+    .filter(layer => showFillInfoButton.value || layer.name !== 'prize1_3')
+    .map(layer => {
+      if (layer.name === 'prize1_2' && !hasPrize.value) {
+        return {
+          ...layer,
+          class: 'gray-prize-img',
+        }
+      }
+      return layer
+    })
 })
 
-const posterInfo = computed(() => getHourPosterInfo(posterHourKey.value || currentHourKey()))
+const posterLayers = computed(() => {
+  return layers.poster.map(layer => {
+    if (layer.name === 'poster_9') {
+      return getHourPosterImageLayer(String(clockHourIndex.value))
+    }
+    return layer
+  })
+})
 
 onLoad(options => {
   urlUserId.value = resolveUrlUserId(options)
@@ -596,9 +627,6 @@ async function refreshState() {
 
 function assignState(data = {}) {
   Object.assign(state, data)
-  if (!posterHourKey.value) {
-    posterHourKey.value = uni.getStorageSync(posterHourStorageKey()) || ''
-  }
 }
 
 function openRule() {
@@ -611,7 +639,15 @@ function enterTime() {
 }
 
 function openDaka() {
+  if (!isTodayFirstCheckin()) {
+    screen.value = 'poster'
+    return
+  }
   screen.value = 'daka'
+}
+
+function openPrizeResult() {
+  screen.value = 'prizeResult'
 }
 
 function backToTime() {
@@ -626,18 +662,13 @@ async function doCheckin() {
 
   if (state.checkedToday) {
     uni.showToast({ title: '今日已签到', icon: 'none' })
-    if (state.drawAvailable) {
-      screen.value = 'lottery'
-    }
+    screen.value = 'poster'
     return
   }
 
   try {
-    const signedHourKey = currentHourKey()
     const res = await checkin(userPayload.value)
     assignState(res.data.data)
-    posterHourKey.value = signedHourKey
-    uni.setStorageSync(posterHourStorageKey(), signedHourKey)
     uni.showToast({ title: '签到成功', icon: 'none' })
     setTimeout(() => {
       screen.value = 'poster'
@@ -647,40 +678,22 @@ async function doCheckin() {
   }
 }
 
-function todayDateKey() {
-  const now = new Date()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${now.getFullYear()}${month}${day}`
+function isTodayFirstCheckin() {
+  return !state.checkedToday
 }
 
-function posterHourStorageKey() {
-  return `activity_poster_hour_${urlUserId.value}_${todayDateKey()}`
-}
-
-function currentHourKey() {
-  return String(currentClockHourIndex())
-}
-
-function getHourPosterInfo(key) {
-  const hourList = [
-    { hourName: '子时', hourRange: '23:00-01:00' },
-    { hourName: '丑时', hourRange: '01:00-03:00' },
-    { hourName: '寅时', hourRange: '03:00-05:00' },
-    { hourName: '卯时', hourRange: '05:00-07:00' },
-    { hourName: '辰时', hourRange: '07:00-09:00' },
-    { hourName: '巳时', hourRange: '09:00-11:00' },
-    { hourName: '午时', hourRange: '11:00-13:00' },
-    { hourName: '未时', hourRange: '13:00-15:00' },
-    { hourName: '申时', hourRange: '15:00-17:00' },
-    { hourName: '酉时', hourRange: '17:00-19:00' },
-    { hourName: '戌时', hourRange: '19:00-21:00' },
-    { hourName: '亥时', hourRange: '21:00-23:00' },
-  ]
-  return hourList[Number(key) || 0] || hourList[0]
+function getHourPosterImageLayer(key) {
+  const hourIndex = clampClockHourIndex(Number(key) || 0)
+  const folder = `poster${hourIndex + 1}`
+  const name = hourIndex === 0 ? 'poster1_10' : `${folder}_1`
+  return img(folder, name, 51, 519, 649, 594)
 }
 
 function goLottery() {
+  if (!state.drawAvailable) {
+    uni.showToast({ title: '累计签到7天后可抽奖', icon: 'none' })
+    return
+  }
   screen.value = 'lottery'
 }
 
@@ -787,6 +800,11 @@ function cellStyle(cell) {
 
 .time-pointer-img {
   z-index: 5;
+}
+
+.gray-prize-img {
+  filter: grayscale(1);
+  opacity: .55;
 }
 
 .stage {
@@ -978,31 +996,6 @@ function cellStyle(cell) {
   color: #8a6332;
   font-size: 12px;
   line-height: 16px;
-}
-
-.poster-hour {
-  position: absolute;
-  left: calc(114 / 375 * 100%);
-  top: calc(520 / 812 * 100%);
-  z-index: 6;
-  width: calc(148 / 375 * 100%);
-  color: #8a6332;
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 28px;
-  text-align: center;
-}
-
-.poster-hour-desc {
-  position: absolute;
-  left: calc(114 / 375 * 100%);
-  top: calc(550 / 812 * 100%);
-  z-index: 6;
-  width: calc(148 / 375 * 100%);
-  color: #8a6332;
-  font-size: 11px;
-  line-height: 14px;
-  text-align: center;
 }
 
 .poster-name {
