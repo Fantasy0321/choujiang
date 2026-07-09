@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import uni from '@dcloudio/vite-plugin-uni'
+import { ViteImageOptimizer } from 'vite-plugin-image-optimizer'
 import { resolve } from 'path'
 import { readFileSync, writeFileSync } from 'fs'
 
@@ -48,7 +49,14 @@ export default defineConfig(({ mode }) => {
   const isProd = mode === 'production'
 
   return {
-    plugins: [replaceManifestAppid(env), uni()],
+    plugins: [
+      replaceManifestAppid(env),
+      uni(),
+      ViteImageOptimizer({
+        png: { quality: 75 },
+        jpg: { quality: 75 },
+      }),
+    ],
     resolve: {
       alias: {
         '@': resolve(__dirname, 'src'),

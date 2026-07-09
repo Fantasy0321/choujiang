@@ -1,14 +1,29 @@
 <template>
   <view class="activity">
     <view v-if="screen === 'loading'" class="stage">
-      <skin-image v-for="layer in layers.loading" :key="layer.name" v-bind="layer" />
+      <skin-image
+        v-for="layer in layers.loading"
+        :key="layer.name"
+        v-bind="layer"
+      />
       <view class="progress-clip">
-        <skin-image folder="loading" name="loading_2" :x="0" :y="0" :w="479" :h="23" />
+        <skin-image
+          folder="loading"
+          name="loading_2"
+          :x="0"
+          :y="0"
+          :w="479"
+          :h="23"
+        />
       </view>
     </view>
 
     <view v-else-if="screen === 'home'" class="stage">
-      <skin-image v-for="layer in layers.home" :key="layer.name" v-bind="layer" />
+      <skin-image
+        v-for="layer in layers.home"
+        :key="layer.name"
+        v-bind="layer"
+      />
       <animated-frame-image
         folder="tree-effect"
         prefix="tree_effect"
@@ -31,8 +46,15 @@
     </view>
 
     <view v-else-if="screen === 'time'" class="stage">
-      <skin-image v-for="layer in layers.time" :key="layer.name" v-bind="layer" />
-      <clock-disk-image :rotate="clockDiskRotation" @rotate-delta="rotateClockDisk" />
+      <skin-image
+        v-for="layer in layers.time"
+        :key="layer.name"
+        v-bind="layer"
+      />
+      <clock-disk-image
+        :rotate="clockDiskRotation"
+        @rotate-delta="rotateClockDisk"
+      />
       <skin-image
         :key="timePointerLayer.folder"
         class="time-pointer-img"
@@ -45,13 +67,21 @@
     </view>
 
     <view v-else-if="screen === 'daka'" class="stage">
-      <skin-image v-for="layer in dakaLayers" :key="layer.name + layer.x + layer.y" v-bind="layer" />
+      <skin-image
+        v-for="layer in dakaLayers"
+        :key="layer.name + layer.x + layer.y"
+        v-bind="layer"
+      />
       <view class="tap-area close-daka-area" @tap="backToTime" />
       <view class="tap-area sign-area" @tap="doCheckin" />
     </view>
 
     <view v-else-if="screen === 'lottery'" class="stage">
-      <skin-image v-for="layer in lotteryLayers" :key="layer.name" v-bind="layer" />
+      <skin-image
+        v-for="layer in lotteryLayers"
+        :key="layer.name"
+        v-bind="layer"
+      />
       <view
         v-for="(cell, index) in lotteryCells"
         :key="cell.key"
@@ -69,29 +99,56 @@
         :class="layer.class"
         v-bind="layer"
       />
-      <view class="result-prize-name">{{ state.prizeName || '暂无奖品' }}</view>
-      <view v-if="showFillInfoButton" class="tap-area fill-area" @tap="openMessage" />
+      <view class="result-prize-name">{{ state.prizeName || "暂无奖品" }}</view>
+      <view
+        v-if="showFillInfoButton"
+        class="tap-area fill-area"
+        @tap="openMessage"
+      />
     </view>
 
     <view v-else-if="screen === 'message'" class="stage">
-      <skin-image v-for="layer in layers.message" :key="layer.name" v-bind="layer" />
+      <skin-image
+        v-for="layer in layers.message"
+        :key="layer.name"
+        v-bind="layer"
+      />
       <input v-model="claimForm.receiverName" class="form-input name-input" />
-      <input v-model="claimForm.receiverPhone" class="form-input phone-input" type="number" />
-      <input v-model="claimForm.receiverAddress" class="form-input address-input" />
+      <input
+        v-model="claimForm.receiverPhone"
+        class="form-input phone-input"
+        type="number"
+      />
+      <input
+        v-model="claimForm.receiverAddress"
+        class="form-input address-input"
+      />
       <view class="tap-area close-message-area" @tap="screen = 'prizeResult'" />
       <view class="tap-area submit-area" @tap="submitClaim" />
     </view>
 
     <view v-else-if="screen === 'poster'" class="stage">
-      <skin-image v-for="layer in posterLayers" :key="layer.name" v-bind="layer" />
-      <view class="poster-name">{{ state.nickname || '用户昵称' }}</view>
-      <view class="poster-prize">{{ state.prizeName || '扫码参与活动' }}</view>
+      <skin-image
+        v-for="layer in posterLayers"
+        :key="layer.name"
+        v-bind="layer"
+      />
+      <view class="poster-name">{{ state.nickname || "用户昵称" }}</view>
+      <view class="poster-day">{{ posterDayText }}</view>
+      <view class="poster-copy">
+        <text v-for="line in posterCopyLines" :key="line">{{ line }}</text>
+      </view>
+      <view class="poster-prize">扫码参与活动</view>
       <view class="tap-area poster-draw-area" @tap="goLottery" />
     </view>
 
     <view v-if="showRule" class="modal-mask">
       <view class="stage">
-        <skin-image v-for="layer in layers.rule" :key="layer.name" v-bind="layer" />
+        <skin-image
+          v-for="layer in layers.rule"
+          :key="layer.name"
+          v-bind="layer"
+        />
         <view class="tap-area rule-confirm-area" @tap="enterTime" />
       </view>
     </view>
@@ -99,16 +156,29 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, onMounted, onUnmounted, reactive, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
-import { checkin, claimPrize, drawPrize, getActivityState } from '@/api/activity'
-import { generateActivityToken } from '@/api/auth'
+import {
+  computed,
+  defineComponent,
+  h,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+} from "vue";
+import { onLoad } from "@dcloudio/uni-app";
+import {
+  checkin,
+  claimPrize,
+  drawPrize,
+  getActivityState,
+} from "@/api/activity";
+import { generateActivityToken } from "@/api/auth";
 
-const DESIGN_WIDTH = 750
-const DESIGN_HEIGHT = 1624
+const DESIGN_WIDTH = 750;
+const DESIGN_HEIGHT = 1624;
 
-const percentX = value => `calc(${Number(value)} / ${DESIGN_WIDTH} * 100%)`
-const percentY = value => `calc(${Number(value)} / ${DESIGN_HEIGHT} * 100%)`
+const percentX = (value) => `calc(${Number(value)} / ${DESIGN_WIDTH} * 100%)`;
+const percentY = (value) => `calc(${Number(value)} / ${DESIGN_HEIGHT} * 100%)`;
 
 function designStyle({ x, y, w, h }) {
   return {
@@ -116,7 +186,7 @@ function designStyle({ x, y, w, h }) {
     top: percentY(y),
     width: percentX(w),
     height: percentY(h),
-  }
+  };
 }
 
 const SkinImage = defineComponent({
@@ -131,19 +201,19 @@ const SkinImage = defineComponent({
   },
   setup(props) {
     return () => {
-      const style = designStyle(props)
+      const style = designStyle(props);
       if (props.autoHeight) {
-        style.height = 'auto'
+        style.height = "auto";
       }
 
-      return h('img', {
-        class: 'skin-img',
+      return h("img", {
+        class: "skin-img",
         src: `/static/activity/${props.folder}/${props.name}.png`,
         style,
-      })
-    }
+      });
+    };
   },
-})
+});
 
 const AnimatedFrameImage = defineComponent({
   props: {
@@ -157,323 +227,344 @@ const AnimatedFrameImage = defineComponent({
     h: { type: [String, Number], required: true },
   },
   setup(props) {
-    const currentFrame = ref(0)
-    let timer = null
+    const currentFrame = ref(0);
+    let timer = null;
 
     function getFrameSrc(index) {
-      const frameName = String(index).padStart(5, '0')
-      return `/static/activity/${props.folder}/${props.prefix}_${frameName}.png`
+      const frameName = String(index).padStart(5, "0");
+      return `/static/activity/${props.folder}/${props.prefix}_${frameName}.png`;
     }
 
     onMounted(() => {
-      if (typeof Image !== 'undefined') {
+      if (typeof Image !== "undefined") {
         for (let index = 0; index < props.frameCount; index += 1) {
-          const frameImage = new Image()
-          frameImage.src = getFrameSrc(index)
+          const frameImage = new Image();
+          frameImage.src = getFrameSrc(index);
         }
       }
 
       timer = setInterval(() => {
-        currentFrame.value = (currentFrame.value + 1) % props.frameCount
-      }, 1000 / props.fps)
-    })
+        currentFrame.value = (currentFrame.value + 1) % props.frameCount;
+      }, 1000 / props.fps);
+    });
 
     onUnmounted(() => {
       if (timer) {
-        clearInterval(timer)
+        clearInterval(timer);
       }
-    })
+    });
 
     return () => {
-      return h('img', {
-        class: 'skin-img',
+      return h("img", {
+        class: "skin-img",
         src: getFrameSrc(currentFrame.value),
         style: designStyle(props),
-      })
-    }
+      });
+    };
   },
-})
+});
 
 const ClockDiskImage = defineComponent({
   props: {
     rotate: { type: Number, default: 0 },
   },
-  emits: ['rotateDelta'],
+  emits: ["rotateDelta"],
   setup(props, { emit }) {
-    let dragging = false
-    let lastAngle = 0
+    let dragging = false;
+    let lastAngle = 0;
 
     function angleFromEvent(event) {
-      const point = event.touches?.[0] || event
-      const rect = event.currentTarget.getBoundingClientRect()
-      const centerX = rect.left + rect.width / 2
-      const centerY = rect.top + (rect.width * 828 / 817) / 2
-      return Math.atan2(point.clientY - centerY, point.clientX - centerX) * 180 / Math.PI
+      const point = event.touches?.[0] || event;
+      const rect = event.currentTarget.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + (rect.width * 828) / 817 / 2;
+      return (
+        (Math.atan2(point.clientY - centerY, point.clientX - centerX) * 180) /
+        Math.PI
+      );
     }
 
     function normalizeDelta(delta) {
-      if (delta > 180) return delta - 360
-      if (delta < -180) return delta + 360
-      return delta
+      if (delta > 180) return delta - 360;
+      if (delta < -180) return delta + 360;
+      return delta;
     }
 
     function startDrag(event) {
-      dragging = true
-      lastAngle = angleFromEvent(event)
-      event.preventDefault?.()
+      dragging = true;
+      lastAngle = angleFromEvent(event);
+      event.preventDefault?.();
     }
 
     function moveDrag(event) {
-      if (!dragging) return
-      const nextAngle = angleFromEvent(event)
-      emit('rotateDelta', normalizeDelta(nextAngle - lastAngle))
-      lastAngle = nextAngle
-      event.preventDefault?.()
+      if (!dragging) return;
+      const nextAngle = angleFromEvent(event);
+      emit("rotateDelta", normalizeDelta(nextAngle - lastAngle));
+      lastAngle = nextAngle;
+      event.preventDefault?.();
     }
 
     function endDrag() {
-      dragging = false
+      dragging = false;
     }
 
     function startMouseDrag(event) {
-      startDrag(event)
-      const move = moveEvent => moveDrag(moveEvent)
+      startDrag(event);
+      const move = (moveEvent) => moveDrag(moveEvent);
       const end = () => {
-        endDrag()
-        window.removeEventListener('mousemove', move)
-        window.removeEventListener('mouseup', end)
-      }
-      window.addEventListener('mousemove', move)
-      window.addEventListener('mouseup', end)
+        endDrag();
+        window.removeEventListener("mousemove", move);
+        window.removeEventListener("mouseup", end);
+      };
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", end);
     }
 
     // block.png: 817x828, 只露出上半部分（略过一半）
     // 显示宽度 750px，高度 auto ≈ 760px，clip 裁剪底部
     return () =>
-      h('div', {
-        class: 'clock-disk-clip',
-        onTouchstart: startDrag,
-        onTouchmove: moveDrag,
-        onTouchend: endDrag,
-        onTouchcancel: endDrag,
-        onMousedown: startMouseDrag,
-        style: {
-          left: percentX(-10),
-          top: percentY(1140),
-          width: percentX(770),
-          height: percentY(516),
-          overflow: 'hidden',
+      h(
+        "div",
+        {
+          class: "clock-disk-clip",
+          onTouchstart: startDrag,
+          onTouchmove: moveDrag,
+          onTouchend: endDrag,
+          onTouchcancel: endDrag,
+          onMousedown: startMouseDrag,
+          style: {
+            left: percentX(-10),
+            top: percentY(1140),
+            width: percentX(770),
+            height: percentY(516),
+            overflow: "hidden",
+          },
         },
-      },
         [
-          h('img', {
-            class: 'skin-img clock-disk-img',
-            src: '/static/activity/time1/block.png',
+          h("img", {
+            class: "skin-img clock-disk-img",
+            src: "/static/activity/time1/block.png",
             style: {
               left: 0,
               top: 0,
-              width: '100%',
+              width: "100%",
               transform: `rotate(${props.rotate}deg)`,
-              transformOrigin: '50% 50%',
+              transformOrigin: "50% 50%",
             },
           }),
         ],
-      )
+      );
   },
-})
+});
 
-const img = (folder, name, x, y, w, h) => ({ folder, name, x, y, w, h })
+const img = (folder, name, x, y, w, h) => ({ folder, name, x, y, w, h });
 
 const layers = {
   loading: [
-    img('loading', 'loading_6', 0, 0, 750, 1624),
-    img('loading', 'loading_5', 0, 437, 750, 330),
-    img('loading', 'loading_4', 283, 980, 185, 26),
-    img('loading', 'loading_3', 143, 909, 486, 29),
-    img('loading', 'loading_1', 240, 295, 270, 66),
+    img("loading", "loading_6", 0, 0, 750, 1624),
+    img("loading", "loading_5", 0, 437, 750, 330),
+    img("loading", "loading_4", 283, 980, 185, 26),
+    img("loading", "loading_3", 143, 909, 486, 29),
+    img("loading", "loading_1", 240, 295, 270, 66),
   ],
   home: [
-    img('index', 'index_7', 0, 0, 750, 1624),
-    img('index', 'index_5', 139, 1339, 479, 27),
-    img('index', 'index_4', 0, 690, 750, 77),
-    img('index', 'index_3', 39, 437, 672, 255),
-    img('index', 'index_2', 240, 295, 270, 66),
+    img("index", "index_7", 0, 0, 750, 1624),
+    img("index", "index_5", 139, 1339, 479, 27),
+    img("index", "index_4", 0, 690, 750, 77),
+    img("index", "index_3", 39, 437, 672, 255),
+    img("index", "index_2", 240, 295, 270, 66),
   ],
   rule: [
-    img('rule', 'rule_4', 0, 0, 750, 1624),
-    img('rule', 'rule_3', 0, 0, 750, 1624),
-    img('rule', 'rule_2', 89, 252, 579, 897),
-    img('rule', 'rule_1', 258, 1191, 243, 64),
+    img("rule", "rule_4", 0, 0, 750, 1624),
+    img("rule", "rule_3", 0, 0, 750, 1624),
+    img("rule", "rule_2", 89, 252, 579, 897),
+    img("rule", "rule_1", 258, 1191, 243, 64),
   ],
   time: [
-    img('time1', 'time1_10', 0, 0, 750, 1624),
-    img('time1', 'time1_9', 72, 369, 605, 1097),
-    img('time1', 'time1_6', 316, 1005, 117, 28),
-    img('time1', 'time1_5', 100, 379, 552, 329),
-    img('time1', 'time1_4', 216, 795, 316, 87),
-    img('time1', 'time1_3', 616, 288, 134, 53),
-    img('time1', 'time1_2', 616, 218, 134, 53),
-    img('time1', 'time1_1', 240, 218, 270, 66),
+    img("time1", "time1_10", 0, 0, 750, 1624),
+    img("time1", "time1_9", 72, 369, 605, 1097),
+    img("time1", "time1_6", 316, 1005, 117, 28),
+    img("time1", "time1_5", 100, 379, 552, 329),
+    img("time1", "time1_4", 216, 795, 316, 87),
+    img("time1", "time1_3", 616, 288, 134, 53),
+    img("time1", "time1_2", 616, 218, 134, 53),
+    img("time1", "time1_1", 240, 218, 270, 66),
   ],
   daka: [
-    img('daka', 'daka_21', 0, 0, 750, 1624),
-    img('daka', 'daka_20', 0, 0, 750, 1624),
-    img('daka', 'daka_19', 73, 571, 605, 482),
-    img('daka', 'daka_18', 118, 674, 117, 142),
-    img('daka', 'daka_17', 136, 686, 69, 79),
-    img('daka', 'daka_16', 251, 674, 116, 142),
-    img('daka', 'daka_15', 268, 686, 69, 79),
-    img('daka', 'daka_14', 383, 674, 117, 142),
-    img('daka', 'daka_13', 401, 686, 69, 79),
-    img('daka', 'daka_12', 516, 674, 116, 142),
-    img('daka', 'daka_11', 533, 686, 69, 79),
-    img('daka', 'daka_10', 118, 835, 117, 142),
-    img('daka', 'daka_9', 136, 847, 69, 79),
-    img('daka', 'daka_8', 251, 835, 116, 142),
-    img('daka', 'daka_7', 268, 847, 69, 79),
-    img('daka', 'daka_6', 384, 835, 248, 142),
-    img('daka', 'daka_5', 458, 833, 88, 100),
-    img('daka', 'daka_4', 242, 1111, 268, 71),
-    img('daka', 'daka_3', 620, 494, 57, 57),
+    img("daka", "daka_21", 0, 0, 750, 1624),
+    img("daka", "daka_20", 0, 0, 750, 1624),
+    img("daka", "daka_19", 73, 571, 605, 482),
+    img("daka", "daka_18", 118, 674, 117, 142),
+    img("daka", "daka_17", 136, 686, 69, 79),
+    img("daka", "daka_16", 251, 674, 116, 142),
+    img("daka", "daka_15", 268, 686, 69, 79),
+    img("daka", "daka_14", 383, 674, 117, 142),
+    img("daka", "daka_13", 401, 686, 69, 79),
+    img("daka", "daka_12", 516, 674, 116, 142),
+    img("daka", "daka_11", 533, 686, 69, 79),
+    img("daka", "daka_10", 118, 835, 117, 142),
+    img("daka", "daka_9", 136, 847, 69, 79),
+    img("daka", "daka_8", 251, 835, 116, 142),
+    img("daka", "daka_7", 268, 847, 69, 79),
+    img("daka", "daka_6", 384, 835, 248, 142),
+    img("daka", "daka_5", 458, 833, 88, 100),
+    img("daka", "daka_4", 242, 1111, 268, 71),
+    img("daka", "daka_3", 620, 494, 57, 57),
   ],
   lottery: [
-    img('prize', 'prize_14', 0, 0, 750, 1624),
-    img('prize', 'prize_13', 42, 570, 675, 682),
-    img('prize', 'prize_12', 288, 811, 204, 204),
-    img('prize', 'prize_10', 124, 817, 192, 191),
-    img('prize', 'prize_9', 294, 647, 192, 192),
-    img('prize', 'prize_8', 294, 987, 192, 191),
-    img('prize', 'prize_7', 464, 647, 192, 192),
-    img('prize', 'prize_6', 124, 647, 192, 192),
-    img('prize', 'prize_5', 124, 987, 192, 191),
-    img('prize', 'prize_4', 464, 817, 192, 191),
-    img('prize', 'prize_3', 464, 987, 192, 191),
-    img('prize', 'prize_2', 39, 348, 672, 255),
-    img('prize', 'prize_1', 240, 218, 270, 66),
+    img("prize", "prize_14", 0, 0, 750, 1624),
+    img("prize", "prize_13", 42, 570, 675, 682),
+    img("prize", "prize_12", 288, 811, 204, 204),
+    img("prize", "prize_10", 124, 817, 192, 191),
+    img("prize", "prize_9", 294, 647, 192, 192),
+    img("prize", "prize_8", 294, 987, 192, 191),
+    img("prize", "prize_7", 464, 647, 192, 192),
+    img("prize", "prize_6", 124, 647, 192, 192),
+    img("prize", "prize_5", 124, 987, 192, 191),
+    img("prize", "prize_4", 464, 817, 192, 191),
+    img("prize", "prize_3", 464, 987, 192, 191),
+    img("prize", "prize_2", 39, 348, 672, 255),
+    img("prize", "prize_1", 240, 218, 270, 66),
   ],
   prizeResult: [
-    img('prize1', 'prize1_8', 0, 0, 750, 1624),
-    img('prize1', 'prize1_7', 42, 570, 675, 706),
-    img('prize1', 'prize1_6', 324, 1046, 104, 26),
-    img('prize1', 'prize1_5', 39, 348, 672, 255),
-    img('prize1', 'prize1_4', 240, 218, 270, 66),
-    img('prize1', 'prize1_3', 254, 1117, 243, 65),
-    img('prize1', 'prize1_2', 164, 750, 403, 291),
-    img('prize1', 'prize1_1', 150, 749, 452, 300),
+    img("prize1", "prize1_8", 0, 0, 750, 1624),
+    img("prize1", "prize1_7", 42, 570, 675, 706),
+    img("prize1", "prize1_6", 324, 1046, 104, 26),
+    img("prize1", "prize1_5", 39, 348, 672, 255),
+    img("prize1", "prize1_4", 240, 218, 270, 66),
+    img("prize1", "prize1_3", 254, 1117, 243, 65),
+    img("prize1", "prize1_2", 164, 750, 403, 291),
+    img("prize1", "prize1_1", 150, 749, 452, 300),
   ],
   message: [
-    img('massege', 'massege_11', 0, 0, 750, 1624),
-    img('massege', 'massege_10', 0, 0, 750, 1624),
-    img('massege', 'massege_9', 111, 503, 537, 564),
-    img('massege', 'massege_8', 160, 695, 109, 25),
-    img('massege', 'massege_7', 301, 682, 306, 47),
-    img('massege', 'massege_6', 301, 757, 306, 47),
-    img('massege', 'massege_5', 301, 832, 306, 47),
-    img('massege', 'massege_4', 160, 768, 108, 25),
-    img('massege', 'massege_3', 161, 845, 107, 25),
-    img('massege', 'massege_2', 591, 429, 57, 57),
-    img('massege', 'massege_1', 242, 1111, 268, 71),
+    img("massege", "massege_11", 0, 0, 750, 1624),
+    img("massege", "massege_10", 0, 0, 750, 1624),
+    img("massege", "massege_9", 111, 503, 537, 564),
+    img("massege", "massege_8", 160, 695, 109, 25),
+    img("massege", "massege_7", 301, 682, 306, 47),
+    img("massege", "massege_6", 301, 757, 306, 47),
+    img("massege", "massege_5", 301, 832, 306, 47),
+    img("massege", "massege_4", 160, 768, 108, 25),
+    img("massege", "massege_3", 161, 845, 107, 25),
+    img("massege", "massege_2", 591, 429, 57, 57),
+    img("massege", "massege_1", 242, 1111, 268, 71),
   ],
   poster: [
-    img('poster', 'poster_11', 0, 0, 750, 1624),
-    img('poster', 'poster_10', 35, 294, 715, 1330),
-    img('poster', 'poster_9', 51, 519, 649, 594),
-    img('poster', 'poster_8', 65, 1141, 71, 73),
-    img('poster', 'poster_7', 146, 1162, 119, 30),
-    img('poster', 'poster_6', 66, 1226, 359, 84),
-    img('poster', 'poster_5', 146, 1201, 168, 1),
-    img('poster', 'poster_4', 546, 1138, 147, 174),
-    img('poster', 'poster_3', 551, 1144, 136, 135),
-    img('poster', 'poster_2', 228, 1401, 298, 27),
-    img('poster', 'poster_1', 251, 200, 249, 60),
+    img("poster", "poster_11", 0, 0, 750, 1624),
+    img("poster", "poster_10", 35, 294, 715, 1330),
+    img("poster", "poster_9", 51, 519, 649, 594),
+    img("poster", "poster_8", 65, 1141, 71, 73),
+    img("poster", "poster_7", 146, 1162, 119, 30),
+    img("poster", "poster_6", 66, 1226, 359, 84),
+    img("poster", "poster_5", 146, 1201, 168, 1),
+    img("poster", "poster_4", 546, 1138, 147, 174),
+    img("poster", "poster_3", 551, 1144, 136, 135),
+    img("poster", "poster_2", 228, 1401, 298, 27),
+    img("poster", "poster_1", 251, 200, 249, 60),
   ],
-}
+};
 
-const screen = ref('loading')
-const showRule = ref(false)
-const activePrizeIndex = ref(-1)
-const drawing = ref(false)
-const urlUserId = ref('')
-const clockBaseRotation = ref(0)
-const manualClockRotationOffset = ref(0)
+const screen = ref("loading");
+const showRule = ref(false);
+const activePrizeIndex = ref(-1);
+const drawing = ref(false);
+const urlUserId = ref("");
+const clockBaseRotation = ref(0);
+const manualClockRotationOffset = ref(0);
 
-const state = reactive({})
+const state = reactive({});
 const claimForm = reactive({
-  receiverName: '',
-  receiverPhone: '',
-  receiverAddress: '',
-})
+  receiverName: "",
+  receiverPhone: "",
+  receiverAddress: "",
+});
 
 const lotteryCells = [
-  { key: '0', x: 124, y: 647, w: 192, h: 192 },
-  { key: '1', x: 294, y: 647, w: 192, h: 192 },
-  { key: '2', x: 464, y: 647, w: 192, h: 192 },
-  { key: '3', x: 464, y: 817, w: 192, h: 191 },
-  { key: '4', x: 464, y: 987, w: 192, h: 191 },
-  { key: '5', x: 294, y: 987, w: 192, h: 191 },
-  { key: '6', x: 124, y: 987, w: 192, h: 191 },
-  { key: '7', x: 124, y: 817, w: 192, h: 191 },
-]
+  { key: "0", x: 124, y: 647, w: 192, h: 192 },
+  { key: "1", x: 294, y: 647, w: 192, h: 192 },
+  { key: "2", x: 464, y: 647, w: 192, h: 192 },
+  { key: "3", x: 464, y: 817, w: 192, h: 191 },
+  { key: "4", x: 464, y: 987, w: 192, h: 191 },
+  { key: "5", x: 294, y: 987, w: 192, h: 191 },
+  { key: "6", x: 124, y: 987, w: 192, h: 191 },
+  { key: "7", x: 124, y: 817, w: 192, h: 191 },
+];
+
+const posterDayCopies = [
+  ["初醒好的开始就是成功的一半", "打卡第一天新平衡从这一步起"],
+  ["慢下来听见身体真实的声音", "打卡第二天把节奏交还给自己"],
+  ["每一次调整都在靠近轻盈", "打卡第三天给状态一点耐心"],
+  ["把规律写进今天的生活里", "打卡第四天好习惯正在生长"],
+  ["能量在细小坚持中慢慢回来", "打卡第五天继续稳稳向前"],
+  ["身心平衡不是偶然是选择", "打卡第六天把舒服留给自己"],
+  ["七天同行见证新的生活秩序", "打卡第七天新平衡已经启程"],
+];
 
 const userPayload = computed(() => ({
   id: urlUserId.value,
   visitorId: urlUserId.value,
-  nickname: uni.getStorageSync('activity_nickname') || '用户昵称',
-  avatarUrl: uni.getStorageSync('activity_avatar') || '',
-}))
+  nickname: uni.getStorageSync("activity_nickname") || "用户昵称",
+  avatarUrl: uni.getStorageSync("activity_avatar") || "",
+}));
 
-let clockTimer = null
-const LAST_CLOCK_HOUR_INDEX = 11
+let clockTimer = null;
+const LAST_CLOCK_HOUR_INDEX = 11;
 
-const clockDiskRotation = computed(() => clockBaseRotation.value + manualClockRotationOffset.value)
+const clockDiskRotation = computed(
+  () => clockBaseRotation.value + manualClockRotationOffset.value,
+);
 const clockHourIndex = computed(() => {
-  return clampClockHourIndex(Math.round(-clockDiskRotation.value / 30), currentClockHourIndex())
-})
+  return clampClockHourIndex(
+    Math.round(-clockDiskRotation.value / 30),
+    currentClockHourIndex(),
+  );
+});
 const timePointerLayer = computed(() => {
-  const folder = `time${clockHourIndex.value + 1}`
-  return img(folder, `${folder}_7`, 207, 1038, 336, 524)
-})
+  const folder = `time${clockHourIndex.value + 1}`;
+  return img(folder, `${folder}_7`, 207, 1038, 336, 524);
+});
 
 function updateClockDiskRotation() {
-  clockBaseRotation.value = -currentClockHourIndex() * 30
-  clampClockOffset()
+  clockBaseRotation.value = -currentClockHourIndex() * 30;
+  clampClockOffset();
 }
 
 function rotateClockDisk(delta) {
-  manualClockRotationOffset.value += delta
-  clampClockOffset()
+  manualClockRotationOffset.value += delta;
+  clampClockOffset();
 }
 
 function positiveModulo(value, divisor) {
-  return ((value % divisor) + divisor) % divisor
+  return ((value % divisor) + divisor) % divisor;
 }
 
 function clampClockHourIndex(value, minIndex = 0) {
-  return Math.min(Math.max(value, minIndex), LAST_CLOCK_HOUR_INDEX)
+  return Math.min(Math.max(value, minIndex), LAST_CLOCK_HOUR_INDEX);
 }
 
 function clampClockOffset() {
-  const minRotation = -currentClockHourIndex() * 30
-  const maxRotation = -LAST_CLOCK_HOUR_INDEX * 30
-  const nextRotation = clockBaseRotation.value + manualClockRotationOffset.value
+  const minRotation = -currentClockHourIndex() * 30;
+  const maxRotation = -LAST_CLOCK_HOUR_INDEX * 30;
+  const nextRotation =
+    clockBaseRotation.value + manualClockRotationOffset.value;
   if (nextRotation > minRotation) {
-    manualClockRotationOffset.value = minRotation - clockBaseRotation.value
-    return
+    manualClockRotationOffset.value = minRotation - clockBaseRotation.value;
+    return;
   }
   if (nextRotation < maxRotation) {
-    manualClockRotationOffset.value = maxRotation - clockBaseRotation.value
+    manualClockRotationOffset.value = maxRotation - clockBaseRotation.value;
   }
 }
 
 function currentClockHourIndex() {
-  const hour = new Date().getHours()
-  const oddHour = hour % 2 === 1 ? hour : (hour + 23) % 24
-  return clampClockHourIndex(positiveModulo(((oddHour + 23) % 24) / 2, 12))
+  const hour = new Date().getHours();
+  const oddHour = hour % 2 === 1 ? hour : (hour + 23) % 24;
+  return clampClockHourIndex(positiveModulo(((oddHour + 23) % 24) / 2, 12));
 }
 
 const dakaLayers = computed(() => {
-  const checked = Math.min(Number(state.checkinDays || 0), 7)
-  const isSeventhChecked = checked >= 7
+  const checked = Math.min(Number(state.checkinDays || 0), 7);
+  const isSeventhChecked = checked >= 7;
   const marks = [
     [118, 674],
     [251, 674],
@@ -481,301 +572,331 @@ const dakaLayers = computed(() => {
     [516, 674],
     [118, 835],
     [251, 835],
-  ]
-  const baseLayers = isSeventhChecked ? layers.daka.filter(layer => layer.name !== 'daka_5') : layers.daka
+  ];
+  const baseLayers = isSeventhChecked
+    ? layers.daka.filter((layer) => layer.name !== "daka_5")
+    : layers.daka;
   return [
     ...baseLayers,
-    ...marks.slice(0, checked).map(([x, y]) => img('daka', 'daka_2', x, y, 117, 142)),
-    ...marks.slice(0, checked).map(([x, y]) => img('daka', 'daka_1', x + 28, y + 43, 57, 57)),
+    ...marks
+      .slice(0, checked)
+      .map(([x, y]) => img("daka", "daka_2", x, y, 117, 142)),
+    ...marks
+      .slice(0, checked)
+      .map(([x, y]) => img("daka", "daka_1", x + 28, y + 43, 57, 57)),
     ...(isSeventhChecked
       ? [
-          img('daka', 'daka_2', 384, 835, 248, 142),
-          img('daka', 'daka_1', 479, 878, 57, 57),
+          img("daka", "daka_2", 384, 835, 248, 142),
+          img("daka", "daka_1", 479, 878, 57, 57),
         ]
       : []),
-  ]
-})
+  ];
+});
 
 const lotteryLayers = computed(() => {
-  return layers.lottery.map(layer => {
-    if (layer.name === 'prize_12') {
+  return layers.lottery.map((layer) => {
+    if (layer.name === "prize_12") {
       return {
         ...layer,
-        name: state.drawAvailable ? 'prize_11' : 'prize_12',
-      }
+        name: state.drawAvailable ? "prize_11" : "prize_12",
+      };
     }
-    return layer
-  })
-})
+    return layer;
+  });
+});
 
-const hasPrize = computed(() => Boolean(state.prizeStatus || state.prizeName))
+const hasPrize = computed(() => Boolean(state.prizeStatus || state.prizeName));
 
-const showFillInfoButton = computed(() => state.prizeStatus !== 'SUBMITTED')
+const showFillInfoButton = computed(() => state.prizeStatus !== "SUBMITTED");
 
 const prizeResultLayers = computed(() => {
   return layers.prizeResult
-    .filter(layer => showFillInfoButton.value || layer.name !== 'prize1_3')
-    .map(layer => {
-      if (layer.name === 'prize1_2' && !hasPrize.value) {
+    .filter((layer) => showFillInfoButton.value || layer.name !== "prize1_3")
+    .map((layer) => {
+      if (layer.name === "prize1_2" && !hasPrize.value) {
         return {
           ...layer,
-          class: 'gray-prize-img',
-        }
+          class: "gray-prize-img",
+        };
       }
-      return layer
-    })
-})
+      return layer;
+    });
+});
+
+const posterDayIndex = computed(() => {
+  const days = Number(state.checkinDays || 1);
+  return Math.min(Math.max(days, 1), posterDayCopies.length);
+});
+
+const posterDayText = computed(
+  () => `第${toChineseNumber(posterDayIndex.value)}天`,
+);
+const posterCopyLines = computed(
+  () => posterDayCopies[posterDayIndex.value - 1],
+);
 
 const posterLayers = computed(() => {
-  return layers.poster.map(layer => {
-    if (layer.name === 'poster_9') {
-      return getHourPosterImageLayer(String(clockHourIndex.value))
-    }
-    return layer
-  })
-})
+  return layers.poster
+    .filter((layer) => !["poster_6", "poster_7"].includes(layer.name))
+    .map((layer) => {
+      if (layer.name === "poster_9") {
+        return getHourPosterImageLayer(clockHourIndex.value);
+      }
+      return layer;
+    });
+});
 
-onLoad(options => {
-  urlUserId.value = resolveUrlUserId(options)
-})
+onLoad((options) => {
+  urlUserId.value = resolveUrlUserId(options);
+});
 
 onMounted(() => {
   if (!urlUserId.value) {
-    urlUserId.value = resolveUrlUserId()
+    urlUserId.value = resolveUrlUserId();
   }
-  updateClockDiskRotation()
-  clockTimer = setInterval(updateClockDiskRotation, 10 * 1000)
-  boot()
-})
+  updateClockDiskRotation();
+  clockTimer = setInterval(updateClockDiskRotation, 10 * 1000);
+  boot();
+});
 
 onUnmounted(() => {
   if (clockTimer) {
-    clearInterval(clockTimer)
+    clearInterval(clockTimer);
   }
-})
+});
 
 async function boot() {
   setTimeout(() => {
-    screen.value = 'home'
-  }, 900)
+    screen.value = "home";
+  }, 900);
 
   try {
-    await ensureActivityToken()
-    await refreshState()
+    await ensureActivityToken();
+    await refreshState();
   } catch (error) {
-    uni.showToast({ title: error?.data?.msg || '授权失败', icon: 'none' })
+    uni.showToast({ title: error?.data?.msg || "授权失败", icon: "none" });
   }
 }
 
 async function ensureActivityToken() {
-  const cachedUserId = uni.getStorageSync('activity_user_id')
-  const cachedToken = uni.getStorageSync('activity_token')
+  const cachedUserId = uni.getStorageSync("activity_user_id");
+  const cachedToken = uni.getStorageSync("activity_token");
   if (!urlUserId.value && cachedUserId) {
-    urlUserId.value = String(cachedUserId)
+    urlUserId.value = String(cachedUserId);
   }
   if (cachedToken && cachedUserId && String(cachedUserId) === urlUserId.value) {
-    return cachedToken
+    return cachedToken;
   }
 
-  const res = await generateActivityToken(urlUserId.value)
-  const token = res.data?.token || res.data?.data?.token || res.data?.data
-  const userId = res.data?.userId || res.data?.data?.userId || urlUserId.value
+  const res = await generateActivityToken(urlUserId.value);
+  const token = res.data?.token || res.data?.data?.token || res.data?.data;
+  const userId = res.data?.userId || res.data?.data?.userId || urlUserId.value;
   if (!token) {
-    throw new Error('empty token')
+    throw new Error("empty token");
   }
   if (userId) {
-    urlUserId.value = String(userId)
-    uni.setStorageSync('activity_user_id', urlUserId.value)
+    urlUserId.value = String(userId);
+    uni.setStorageSync("activity_user_id", urlUserId.value);
   }
-  uni.setStorageSync('activity_token', token)
-  return token
+  uni.setStorageSync("activity_token", token);
+  return token;
 }
 
 function resolveUrlUserId(options = {}) {
   if (options.id) {
-    return String(options.id)
+    return String(options.id);
   }
-  if (typeof window === 'undefined') {
-    return ''
+  if (typeof window === "undefined") {
+    return "";
   }
 
-  const searchId = new URLSearchParams(window.location.search).get('id')
+  const searchId = new URLSearchParams(window.location.search).get("id");
   if (searchId) {
-    return searchId
+    return searchId;
   }
 
-  const hash = window.location.hash || ''
-  const queryIndex = hash.indexOf('?')
+  const hash = window.location.hash || "";
+  const queryIndex = hash.indexOf("?");
   if (queryIndex >= 0) {
-    return new URLSearchParams(hash.slice(queryIndex + 1)).get('id') || ''
+    return new URLSearchParams(hash.slice(queryIndex + 1)).get("id") || "";
   }
-  return ''
+  return "";
 }
 
 async function refreshState() {
   if (!urlUserId.value) {
-    uni.showToast({ title: '缺少用户id', icon: 'none' })
-    return
+    uni.showToast({ title: "缺少用户id", icon: "none" });
+    return;
   }
   try {
-    const res = await getActivityState(userPayload.value)
-    assignState(res.data.data)
+    const res = await getActivityState(userPayload.value);
+    assignState(res.data.data);
   } catch (error) {
-    uni.showToast({ title: '活动状态加载失败', icon: 'none' })
+    uni.showToast({ title: "活动状态加载失败", icon: "none" });
   }
 }
 
 function assignState(data = {}) {
-  Object.assign(state, data)
+  Object.assign(state, data);
 }
 
 function openRule() {
-  showRule.value = true
+  showRule.value = true;
 }
 
 function enterTime() {
-  showRule.value = false
-  screen.value = 'time'
+  showRule.value = false;
+  screen.value = "time";
 }
 
 function openDaka() {
   if (!isTodayFirstCheckin()) {
-    screen.value = 'poster'
-    return
+    screen.value = "poster";
+    return;
   }
-  screen.value = 'daka'
+  screen.value = "daka";
 }
 
 function openPrizeResult() {
-  screen.value = 'prizeResult'
+  screen.value = "prizeResult";
 }
 
 function backToTime() {
-  screen.value = 'time'
+  screen.value = "time";
 }
 
 async function doCheckin() {
   if (!urlUserId.value) {
-    uni.showToast({ title: '缺少用户id', icon: 'none' })
-    return
+    uni.showToast({ title: "缺少用户id", icon: "none" });
+    return;
   }
 
   if (state.checkedToday) {
-    uni.showToast({ title: '今日已签到', icon: 'none' })
-    screen.value = 'poster'
-    return
+    uni.showToast({ title: "今日已签到", icon: "none" });
+    screen.value = "poster";
+    return;
   }
 
   try {
-    const res = await checkin(userPayload.value)
-    assignState(res.data.data)
-    uni.showToast({ title: '签到成功', icon: 'none' })
+    const res = await checkin(userPayload.value);
+    assignState(res.data.data);
+    uni.showToast({ title: "签到成功", icon: "none" });
     setTimeout(() => {
-      screen.value = 'poster'
-    }, 450)
+      screen.value = "poster";
+    }, 450);
   } catch (error) {
-    uni.showToast({ title: error?.data?.msg || '签到失败', icon: 'none' })
+    uni.showToast({ title: error?.data?.msg || "签到失败", icon: "none" });
   }
 }
 
 function isTodayFirstCheckin() {
-  return !state.checkedToday
+  return !state.checkedToday;
 }
 
 function getHourPosterImageLayer(key) {
-  const hourIndex = clampClockHourIndex(Number(key) || 0)
-  const folder = `poster${hourIndex + 1}`
-  const name = hourIndex === 0 ? 'poster1_10' : `${folder}_1`
-  return img(folder, name, 51, 519, 649, 594)
+  const hourIndex = clampClockHourIndex(Number(key) || 0);
+  const folder = `poster${hourIndex + 1}`;
+  const name = hourIndex === 0 ? "poster1_10" : `${folder}_1`;
+  return img(folder, name, 51, 519, 649, 594);
+}
+
+function toChineseNumber(value) {
+  return ["一", "二", "三", "四", "五", "六", "七"][value - 1] || value;
 }
 
 function goLottery() {
   if (!state.drawAvailable) {
-    uni.showToast({ title: '累计签到7天后可抽奖', icon: 'none' })
-    return
+    uni.showToast({ title: "累计签到7天后可抽奖", icon: "none" });
+    return;
   }
-  screen.value = 'lottery'
+  screen.value = "lottery";
 }
 
 async function startDraw() {
-  if (drawing.value) return
+  if (drawing.value) return;
   if (!urlUserId.value) {
-    uni.showToast({ title: '缺少用户id', icon: 'none' })
-    return
+    uni.showToast({ title: "缺少用户id", icon: "none" });
+    return;
   }
 
   if (state.prizeStatus) {
-    screen.value = 'prizeResult'
-    return
+    screen.value = "prizeResult";
+    return;
   }
 
   if (!state.drawAvailable) {
-    uni.showToast({ title: '累计签到7天后可抽奖', icon: 'none' })
-    return
+    uni.showToast({ title: "累计签到7天后可抽奖", icon: "none" });
+    return;
   }
 
-  drawing.value = true
+  drawing.value = true;
   try {
-    const res = await drawPrize(userPayload.value)
-    const data = res.data.data || {}
-    const target = Number.isInteger(data.prizeIndex) ? data.prizeIndex % lotteryCells.length : 0
-    await spinTo(target)
-    assignState(data)
-    screen.value = 'prizeResult'
+    const res = await drawPrize(userPayload.value);
+    const data = res.data.data || {};
+    const target = Number.isInteger(data.prizeIndex)
+      ? data.prizeIndex % lotteryCells.length
+      : 0;
+    await spinTo(target);
+    assignState(data);
+    screen.value = "prizeResult";
   } catch (error) {
-    uni.showToast({ title: error?.data?.msg || '抽奖失败', icon: 'none' })
+    uni.showToast({ title: error?.data?.msg || "抽奖失败", icon: "none" });
   } finally {
-    drawing.value = false
+    drawing.value = false;
   }
 }
 
 function spinTo(target) {
-  return new Promise(resolve => {
-    let step = 0
-    const total = 24 + target
+  return new Promise((resolve) => {
+    let step = 0;
+    const total = 24 + target;
     const timer = setInterval(() => {
-      activePrizeIndex.value = step % lotteryCells.length
-      step += 1
+      activePrizeIndex.value = step % lotteryCells.length;
+      step += 1;
       if (step > total) {
-        clearInterval(timer)
-        activePrizeIndex.value = target
-        setTimeout(resolve, 280)
+        clearInterval(timer);
+        activePrizeIndex.value = target;
+        setTimeout(resolve, 280);
       }
-    }, 70)
-  })
+    }, 70);
+  });
 }
 
 function openMessage() {
-  if (state.prizeStatus === 'SUBMITTED') {
-    uni.showToast({ title: '信息已提交', icon: 'none' })
-    return
+  if (state.prizeStatus === "SUBMITTED") {
+    uni.showToast({ title: "信息已提交", icon: "none" });
+    return;
   }
-  screen.value = 'message'
+  screen.value = "message";
 }
 
 async function submitClaim() {
   if (!urlUserId.value) {
-    uni.showToast({ title: '缺少用户id', icon: 'none' })
-    return
+    uni.showToast({ title: "缺少用户id", icon: "none" });
+    return;
   }
 
-  if (!claimForm.receiverName || !claimForm.receiverPhone || !claimForm.receiverAddress) {
-    uni.showToast({ title: '请填写完整信息', icon: 'none' })
-    return
+  if (
+    !claimForm.receiverName ||
+    !claimForm.receiverPhone ||
+    !claimForm.receiverAddress
+  ) {
+    uni.showToast({ title: "请填写完整信息", icon: "none" });
+    return;
   }
 
   try {
-    const res = await claimPrize({ ...userPayload.value, ...claimForm })
-    assignState(res.data.data)
-    uni.showToast({ title: '提交成功', icon: 'none' })
-    screen.value = 'prizeResult'
+    const res = await claimPrize({ ...userPayload.value, ...claimForm });
+    assignState(res.data.data);
+    uni.showToast({ title: "提交成功", icon: "none" });
+    screen.value = "prizeResult";
   } catch (error) {
-    uni.showToast({ title: error?.data?.msg || '提交失败', icon: 'none' })
+    uni.showToast({ title: error?.data?.msg || "提交失败", icon: "none" });
   }
 }
 
 function cellStyle(cell) {
-  return designStyle(cell)
+  return designStyle(cell);
 }
 </script>
 
@@ -795,7 +916,7 @@ function cellStyle(cell) {
 }
 
 .clock-disk-img {
-  transition: transform .35s ease-out;
+  transition: transform 0.35s ease-out;
 }
 
 .time-pointer-img {
@@ -804,7 +925,7 @@ function cellStyle(cell) {
 
 .gray-prize-img {
   filter: grayscale(1);
-  opacity: .55;
+  opacity: 0.55;
 }
 
 .stage {
@@ -912,7 +1033,7 @@ function cellStyle(cell) {
   height: calc(11.5 / 812 * 100%);
   overflow: hidden;
   border-radius: 99px;
-  animation: loading-bar .9s linear forwards;
+  animation: loading-bar 0.9s linear forwards;
 }
 
 .progress-clip .skin-img {
@@ -933,7 +1054,7 @@ function cellStyle(cell) {
   inset: 0;
   z-index: 20;
   overflow-y: auto;
-  background: rgba(22, 20, 14, .72);
+  background: rgba(22, 20, 14, 0.72);
 }
 
 .lottery-highlight {
@@ -946,7 +1067,7 @@ function cellStyle(cell) {
 
 .lottery-highlight.active {
   border-color: #d91d17;
-  box-shadow: 0 0 11px rgba(217, 29, 23, .6);
+  box-shadow: 0 0 11px rgba(217, 29, 23, 0.6);
 }
 
 .result-prize-name {
@@ -990,18 +1111,45 @@ function cellStyle(cell) {
 }
 
 .poster-name,
+.poster-day,
+.poster-copy,
 .poster-prize {
   position: absolute;
   z-index: 6;
-  color: #8a6332;
-  font-size: 12px;
-  line-height: 16px;
+  color: #8b4f13;
 }
 
 .poster-name {
-  left: calc(138 / 375 * 100%);
+  left: calc(73 / 375 * 100%);
   top: calc(580 / 812 * 100%);
-  width: calc(120 / 375 * 100%);
+  width: calc(160 / 375 * 100%);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.poster-day {
+  left: calc(33 / 375 * 100%);
+  top: calc(608 / 812 * 100%);
+  width: calc(70 / 375 * 100%);
+  font-size: 15px;
+  line-height: 19px;
+  letter-spacing: 0;
+}
+
+.poster-copy {
+  left: calc(33 / 375 * 100%);
+  top: calc(634 / 812 * 100%);
+  width: calc(220 / 375 * 100%);
+  color: #8b4f13;
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0;
+}
+
+.poster-copy text {
+  display: block;
+  color: #8b4f13;
 }
 
 .poster-prize {
@@ -1009,6 +1157,8 @@ function cellStyle(cell) {
   top: calc(585 / 812 * 100%);
   width: calc(68 / 375 * 100%);
   min-height: calc(48 / 812 * 100%);
+  font-size: 12px;
+  line-height: 16px;
   text-align: center;
 }
 </style>
